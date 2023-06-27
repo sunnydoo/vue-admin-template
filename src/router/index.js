@@ -5,161 +5,102 @@ Vue.use(Router)
 
 /* Layout */
 import Layout from '@/layout'
+import vizRouter from './modules/viz'
+import PinyinHelper from 'pinyin4js'
 
-/**
- * Note: sub-menu only appear when route children.length >= 1
- * Detail see: https://panjiachen.github.io/vue-element-admin-site/guide/essentials/router-and-nav.html
- *
- * hidden: true                   if set true, item will not show in the sidebar(default is false)
- * alwaysShow: true               if set true, will always show the root menu
- *                                if not set alwaysShow, when item has more than one children route,
- *                                it will becomes nested mode, otherwise not show the root menu
- * redirect: noRedirect           if set noRedirect will no redirect in the breadcrumb
- * name:'router-name'             the name is used by <keep-alive> (must set!!!)
- * meta : {
-    roles: ['admin','editor']    control the page roles (you can set multiple roles)
-    title: 'title'               the name show in sidebar and breadcrumb (recommend set)
-    icon: 'svg-name'/'el-icon-x' the icon show in the sidebar
-    breadcrumb: false            if set false, the item will hidden in breadcrumb(default is true)
-    activeMenu: '/example/list'  if set path, the sidebar will highlight the path you set
+const uniquePaths = []
+function updateRouteItem(item) {
+  for (let key in item) {
+    key = key.trim().toLowerCase()
+    if (key === 'title') {
+      let pinyinTitle = PinyinHelper.convertToPinyinString(item[key], '', PinyinHelper.FIRST_LETTER)
+      if (uniquePaths.includes(pinyinTitle)) {
+        pinyinTitle += 'a'
+      }
+      uniquePaths.push(pinyinTitle)
+
+      item.name = pinyinTitle
+      item.path = pinyinTitle
+      if ('url' in item) {
+        item.path += '/:url'
+        item.props = { url: item['url'] }
+        delete item.url
+      }
+      item.meta = { title: item['title'] }
+      delete item.title
+    } else if (key === 'children') {
+      const itemArray = item[key]
+      for (const child of itemArray) {
+        updateRouteItem(child)
+      }
+    }
   }
- */
 
-/**
- * constantRoutes
- * a base page that does not have permission requirements
- * all roles can be accessed
- */
+  const thisIcon = 'children' in item ? 'el-icon-folder-opened' : 'el-icon-document'
+  if ('meta' in item) {
+    item.meta['icon'] = thisIcon
+  } else {
+    item['meta'] = { 'icon': thisIcon }
+  }
+
+  if ('children' in item) {
+    item.alwaysShow = true
+    item.component = () => import('@/views/farm/group')
+  } else {
+    item.component = () => import('@/views/farm/repro')
+  }
+}
+
+for (const menuitem of vizRouter) {
+  updateRouteItem(menuitem)
+  menuitem.component = Layout
+  menuitem.alwaysShow = true
+  menuitem.path = '/' + menuitem.path
+}
+
+/*
+* hidden: true                   if set true, item will not show in the sidebar(default is false)
+* alwaysShow: true               if set true, will always show the root menu
+*                                if not set alwaysShow, when item has more than one children route,
+*                                it will becomes nested mode, otherwise not show the root menu
+* redirect: noRedirect           if set noRedirect will no redirect in the breadcrumb
+* name:'router-name'             the name is used by <keep-alive> (must set!!!)
+* meta : {
+   roles: ['admin','editor']    control the page roles (you can set multiple roles)
+   title: 'title'               the name show in sidebar and breadcrumb (recommend set)
+   icon: 'svg-name'/'el-icon-x' the icon show in the sidebar
+   noCache: true                if set true, the page will no be cached(default is false)
+   affix: true                  if set true, the tag will affix in the tags-view
+   breadcrumb: false            if set false, the item will hidden in breadcrumb(default is true)
+   activeMenu: '/example/list'  if set path, the sidebar will highlight the path you set
+*/
 export const constantRoutes = [
   {
     path: '/login',
     component: () => import('@/views/login/index'),
     hidden: true
   },
-
-  {
-    path: '/404',
-    component: () => import('@/views/404'),
-    hidden: true
-  },
-
   {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
-    children: [{
-      path: 'dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/dashboard/index'),
-      meta: { title: 'Dashboard', icon: 'dashboard' }
-    }]
-  },
-
-  {
-    path: '/example',
-    component: Layout,
-    redirect: '/example/table',
-    name: 'Example',
-    meta: { title: 'Example', icon: 'el-icon-s-help' },
     children: [
       {
-        path: 'table',
-        name: 'Table',
-        component: () => import('@/views/table/index'),
-        meta: { title: 'Table', icon: 'table' }
-      },
-      {
-        path: 'tree',
-        name: 'Tree',
-        component: () => import('@/views/tree/index'),
-        meta: { title: 'Tree', icon: 'tree' }
+        path: 'dashboard',
+        component: () => import('@/views/farm/repro'),
+        name: 'dashboard',
+        meta: { title: '报表首页', icon: 'dashboard' }
       }
     ]
   },
+  ...vizRouter
+]
 
-  {
-    path: '/form',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'Form',
-        component: () => import('@/views/form/index'),
-        meta: { title: 'Form', icon: 'form' }
-      }
-    ]
-  },
-
-  {
-    path: '/nested',
-    component: Layout,
-    redirect: '/nested/menu1',
-    name: 'Nested',
-    meta: {
-      title: 'Nested',
-      icon: 'nested'
-    },
-    children: [
-      {
-        path: 'menu1',
-        component: () => import('@/views/nested/menu1/index'), // Parent router-view
-        name: 'Menu1',
-        meta: { title: 'Menu1' },
-        children: [
-          {
-            path: 'menu1-1',
-            component: () => import('@/views/nested/menu1/menu1-1'),
-            name: 'Menu1-1',
-            meta: { title: 'Menu1-1' }
-          },
-          {
-            path: 'menu1-2',
-            component: () => import('@/views/nested/menu1/menu1-2'),
-            name: 'Menu1-2',
-            meta: { title: 'Menu1-2' },
-            children: [
-              {
-                path: 'menu1-2-1',
-                component: () => import('@/views/nested/menu1/menu1-2/menu1-2-1'),
-                name: 'Menu1-2-1',
-                meta: { title: 'Menu1-2-1' }
-              },
-              {
-                path: 'menu1-2-2',
-                component: () => import('@/views/nested/menu1/menu1-2/menu1-2-2'),
-                name: 'Menu1-2-2',
-                meta: { title: 'Menu1-2-2' }
-              }
-            ]
-          },
-          {
-            path: 'menu1-3',
-            component: () => import('@/views/nested/menu1/menu1-3'),
-            name: 'Menu1-3',
-            meta: { title: 'Menu1-3' }
-          }
-        ]
-      },
-      {
-        path: 'menu2',
-        component: () => import('@/views/nested/menu2/index'),
-        name: 'Menu2',
-        meta: { title: 'menu2' }
-      }
-    ]
-  },
-
-  {
-    path: 'external-link',
-    component: Layout,
-    children: [
-      {
-        path: 'https://panjiachen.github.io/vue-element-admin-site/#/',
-        meta: { title: 'External Link', icon: 'link' }
-      }
-    ]
-  },
-
+/**
+ * asyncRoutes
+ * the routes that need to be dynamically loaded based on user roles
+ */
+export const asyncRoutes = [
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }
 ]
@@ -172,7 +113,6 @@ const createRouter = () => new Router({
 
 const router = createRouter()
 
-// Detail see: https://github.com/vuejs/vue-router/issues/1234#issuecomment-357941465
 export function resetRouter() {
   const newRouter = createRouter()
   router.matcher = newRouter.matcher // reset router
