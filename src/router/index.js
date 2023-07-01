@@ -87,7 +87,7 @@ export const constantRoutes = [
     children: [
       {
         path: 'dashboard',
-        component: () => import('@/views/farm/repro'),
+        component: () => import('@/views/dashboard'),
         name: 'dashboard',
         meta: { title: '报表首页', icon: 'dashboard' }
       }
@@ -101,6 +101,39 @@ export const constantRoutes = [
  * the routes that need to be dynamically loaded based on user roles
  */
 export const asyncRoutes = [
+  {
+    path: '/permission',
+    component: Layout,
+    alwaysShow: true, // will always show the root menu
+    name: 'Permission',
+    meta: {
+      title: '权限测试',
+      icon: 'el-icon-folder-opened',
+      roles: ['admin', 'editor'] // you can set roles in root nav
+    },
+    children: [
+      {
+        path: 'page',
+        component: () => import('@/views/permission/page'),
+        name: 'PagePermission',
+        meta: {
+          title: '页面权限',
+          icon: 'el-icon-document',
+          roles: ['admin'] // or you can only set roles in sub nav
+        }
+      },
+      {
+        path: 'role',
+        component: () => import('@/views/permission/role'),
+        name: 'RolePermission',
+        meta: {
+          title: '角色权限',
+          icon: 'el-icon-document',
+          roles: ['admin']
+        }
+      }
+    ]
+  },
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }
 ]
